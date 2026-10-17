@@ -24,6 +24,8 @@ pub fn reregister(app: &AppHandle, state: &AppState) -> Result<(), String> {
         }
         let action = binding.action.clone();
         let accelerator = binding.accelerator.clone();
+        let err_action = action.clone();
+        let err_accel = accelerator.clone();
         manager
             .on_shortcut(accelerator.as_str(), move |app, _shortcut, event| {
                 if event.state != ShortcutState::Pressed {
@@ -31,7 +33,7 @@ pub fn reregister(app: &AppHandle, state: &AppState) -> Result<(), String> {
                 }
                 handle_action(app, &action);
             })
-            .map_err(|e| format!("{} ({}): {e}", action, accelerator))?;
+            .map_err(|e| format!("{} ({}): {e}", err_action, err_accel))?;
     }
     Ok(())
 }

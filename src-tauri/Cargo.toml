@@ -17,7 +17,7 @@ tauri-build = { version = "2.7", features = [] }
 
 [dependencies]
 omwe-core = { path = "../crates/omwe-core" }
-tauri = { version = "2.12", features = ["tray-icon", "image-png"] }
+tauri = { version = "2.12", features = ["protocol-asset", "tray-icon", "image-png"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-log = "2"

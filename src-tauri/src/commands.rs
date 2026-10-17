@@ -318,6 +318,6 @@ pub fn app_info() -> serde_json::Value {
         "name": "OpenMount Wallpaper Engine",
         "version": env!("CARGO_PKG_VERSION"),
         "platforms": ["windows", "macos"],
-        "license": "MIT"
+        "license": "GPL-3.0-or-later"
     })
 }

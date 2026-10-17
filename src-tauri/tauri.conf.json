@@ -71,6 +71,9 @@
       "minimumSystemVersion": "12.0"
     },
     "category": "Entertainment",
+    "copyright": "Copyright (C) 2026 OpenMount contributors",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
     "shortDescription": "Mount-mapped wallpaper engine",
     "longDescription": "OpenMount Wallpaper Engine maps local image and video libraries into a virtual tree, then plays them as a traditional slideshow or a scrolling canvas wallpaper."
   }

@@ -17,8 +17,10 @@ jobs:
         include:
           - platform: macos-latest
             args: --target universal-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - platform: windows-latest
-            args: ""
+            args: --bundles nsis,msi
+            rust_targets: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +30,8 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.rust_targets }}
+      - uses: Swatinem/rust-cache@v2
       - name: Install frontend deps
         run: npm ci
       - uses: tauri-apps/tauri-action@v0
@@ -37,6 +40,14 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "OpenMount ${{ github.ref_name }}"
-          releaseBody: "See the PRD and docs/ for mount and playback behavior."
-          releaseDraft: true
+          releaseBody: |
+            OpenMount Wallpaper Engine ${{ github.ref_name }}
+
+            GPL-3.0-or-later. Source: this repository.
+
+            Bundles:
+            - Windows x86_64: NSIS installer and MSI
+            - macOS Universal (Apple Silicon + Intel): DMG
+          releaseDraft: false
+          prerelease: false
           args: ${{ matrix.args }}

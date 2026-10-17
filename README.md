@@ -63,7 +63,7 @@ Core crate `omwe-core` is GUI-free so mount/playback rules can be tested on any 
 
 ## License
 
-MIT. See [`LICENSE`](./LICENSE).
+OpenMount Wallpaper Engine is free software licensed under [GPL-3.0-or-later](./LICENSE).
 
 ---
 

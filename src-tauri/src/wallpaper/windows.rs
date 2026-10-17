@@ -1,24 +1,24 @@
 #![cfg(windows)]
 
 use windows::core::w;
-use windows::Win32::Foundation::{BOOL, HWND, LPARAM, WPARAM};
+use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, FindWindowExW, FindWindowW, SendMessageTimeoutW, SetParent, SMTO_NORMAL,
 };
 
 const SPAWN_WORKER: u32 = 0x052C;
 
-unsafe extern "system" fn find_worker(hwnd: HWND, lparam: LPARAM) -> BOOL {
+unsafe extern "system" fn find_worker(hwnd: HWND, lparam: LPARAM) -> windows::core::BOOL {
     unsafe {
         let def = FindWindowExW(Some(hwnd), None, w!("SHELLDLL_DefView"), None).unwrap_or_default();
         if !def.is_invalid() {
             let worker = FindWindowExW(None, Some(hwnd), w!("WorkerW"), None).unwrap_or_default();
             if !worker.is_invalid() {
                 *(lparam.0 as *mut HWND) = worker;
-                return BOOL(0);
+                return false.into();
             }
         }
-        BOOL(1)
+        true.into()
     }
 }
 

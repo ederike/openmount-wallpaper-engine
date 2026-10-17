@@ -1,0 +1,32 @@
+{
+  "name": "openmount-wallpaper-engine",
+  "private": true,
+  "version": "0.1.0",
+  "description": "OpenMount Wallpaper Engine — mount-mapped wallpaper player for Windows and macOS",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test": "cargo test -p omwe-core --manifest-path Cargo.toml"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.13.12",
+    "@tauri-apps/api": "^2.12.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.0",
+    "@tauri-apps/plugin-log": "^2.7.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.3",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9"
+  }
+}

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Build
+dist/
+src-tauri/target/
+target/
+*.exe
+*.msi
+*.dmg
+*.app
+*.deb
+*.AppImage
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Env
+.env
+.env.local
+
+# Test / coverage
+coverage/
+*.lcov
+src-tauri/gen/
+
+# OS
+Thumbs.db

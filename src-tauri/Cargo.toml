@@ -1,0 +1,43 @@
+[package]
+name = "omwe"
+version.workspace = true
+description = "OpenMount Wallpaper Engine"
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+default-run = "omwe"
+
+[lib]
+name = "omwe_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+omwe-core = { path = "../crates/omwe-core" }
+tauri = { version = "2.12", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-log = "2"
+serde.workspace = true
+serde_json.workspace = true
+rusqlite.workspace = true
+log.workspace = true
+parking_lot = "0.12"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSWindow"] }
+objc2-foundation = "0.3"
+
+[features]
+default = []

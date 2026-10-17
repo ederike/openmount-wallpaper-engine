@@ -1,0 +1,56 @@
+html, body, #root, .wallpaper {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+  user-select: none;
+}
+.wallpaper {
+  position: relative;
+}
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0ms linear;
+}
+.layer.show { opacity: 1; }
+.layer img, .layer video {
+  width: 100%;
+  height: 100%;
+}
+.layer.cover img, .layer.cover video { object-fit: cover; }
+.layer.contain img, .layer.contain video { object-fit: contain; }
+.layer.stretch img, .layer.stretch video { object-fit: fill; }
+.layer.center img, .layer.center video { object-fit: none; object-position: center; }
+.layer.tile {
+  background-repeat: repeat;
+  background-position: center;
+}
+.scroll-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.scroll-item {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+.scroll-item img, .scroll-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+}
+.empty-wall {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #667;
+  font-family: sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 12px;
+}

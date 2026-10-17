@@ -3,7 +3,8 @@ use omwe_core::export::{
     export_to_file, import_from_file, list_shortcuts, reset_shortcuts, set_shortcut,
 };
 use omwe_core::models::{
-    EngineState, MountNode, MountNodeView, PlaybackSettings, ShortcutBinding, SortSpec,
+    EngineState, MountNode, MountNodeView, PlaybackMode, PlaybackSettings, ShortcutBinding,
+    SortSpec,
 };
 use omwe_core::mount::{self, RefreshReport};
 use omwe_core::playback;
@@ -196,6 +197,14 @@ pub fn play_pause(app: AppHandle, state: State<AppState>) -> AppResult<EngineSta
 
 #[tauri::command]
 pub fn next_item(app: AppHandle, state: State<AppState>) -> AppResult<EngineState> {
+    let engine = state.engine.lock();
+    if engine.mode == PlaybackMode::Scroll {
+        let snapshot = engine.clone();
+        drop(engine);
+        let _ = app.emit("engine://scroll-skip", serde_json::json!({ "forward": true }));
+        return Ok(snapshot);
+    }
+    drop(engine);
     let mut engine = state.engine.lock();
     if !engine.pool.is_empty() {
         engine.current_index = (engine.current_index + 1) % engine.pool.len();
@@ -208,6 +217,14 @@ pub fn next_item(app: AppHandle, state: State<AppState>) -> AppResult<EngineStat
 
 #[tauri::command]
 pub fn prev_item(app: AppHandle, state: State<AppState>) -> AppResult<EngineState> {
+    let engine = state.engine.lock();
+    if engine.mode == PlaybackMode::Scroll {
+        let snapshot = engine.clone();
+        drop(engine);
+        let _ = app.emit("engine://scroll-skip", serde_json::json!({ "forward": false }));
+        return Ok(snapshot);
+    }
+    drop(engine);
     let mut engine = state.engine.lock();
     if !engine.pool.is_empty() {
         engine.current_index = if engine.current_index == 0 {

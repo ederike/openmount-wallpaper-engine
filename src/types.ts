@@ -35,6 +35,13 @@ export type TraditionalOrder = "custom" | "name_asc" | "name_desc" | "random";
 export type VideoEndAction = "next" | "loop";
 export type FillMode = "cover" | "contain" | "stretch" | "tile" | "center";
 export type ScrollDirection = "ltr" | "rtl";
+export type ScrollOrder =
+  | "folder_custom"
+  | "folder_name"
+  | "all_name_asc"
+  | "all_name_desc"
+  | "all_modified"
+  | "random";
 
 export interface TraditionalSettings {
   order: TraditionalOrder;
@@ -55,6 +62,7 @@ export interface ScrollSettings {
   opacity: number;
   loop_enabled: boolean;
   preload_seconds: number;
+  order: ScrollOrder;
 }
 
 export interface PlaybackSettings {
@@ -90,17 +98,4 @@ export interface RefreshReport {
   missing: number;
 }
 
-export const ACTION_LABELS: Record<string, string> = {
-  toggle_window: "Show / hide main window",
-  play_pause: "Play / pause wallpaper",
-  next: "Next item",
-  prev: "Previous item",
-  scroll_faster: "Increase scroll speed",
-  scroll_slower: "Decrease scroll speed",
-  refresh: "Refresh current folder",
-  mount: "Mount files or folder",
-  select_all_playable: "Select all in view for playback",
-  search: "Focus search",
-  settings: "Open settings",
-  delete: "Remove selected mounts",
-};
+export type Locale = "zh" | "en";

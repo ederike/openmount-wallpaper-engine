@@ -1,5 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { api } from "../api";
+import { useT } from "../i18n";
 import { MountNodeView } from "../types";
 import { useAppStore } from "../store";
 
@@ -14,6 +15,7 @@ export function ContextMenu({
   node: MountNodeView;
   onClose: () => void;
 }) {
+  const t = useT();
   const setConfirm = useAppStore((s) => s.setConfirm);
   const highlighted = useAppStore((s) => s.highlighted);
   const currentFolderId = useAppStore((s) => s.currentFolderId);
@@ -28,7 +30,7 @@ export function ContextMenu({
           onClose();
         }}
       >
-        Add to playback pool
+        {t("addToPool")}
       </button>
       <button
         onClick={() => {
@@ -36,12 +38,12 @@ export function ContextMenu({
           onClose();
         }}
       >
-        Remove from playback pool
+        {t("removeFromPool")}
       </button>
       <hr />
       <button
         onClick={async () => {
-          const folder = await open({ directory: true, multiple: false, title: "Mount folder here" });
+          const folder = await open({ directory: true, multiple: false, title: t("mountFolderHere") });
           if (typeof folder === "string") {
             await api.mountPath(folder, node.is_folder ? node.id : currentFolderId);
             await refreshAll();
@@ -49,13 +51,19 @@ export function ContextMenu({
           onClose();
         }}
       >
-        Mount folder here
+        {t("mountFolderHere")}
       </button>
       <button
         onClick={async () => {
           const files = await open({
             multiple: true,
-            filters: [{ name: "Media", extensions: ["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff", "mp4", "mkv", "mov", "webm", "avi"] }],
+            title: t("mountFilesHere"),
+            filters: [
+              {
+                name: t("mediaFilter"),
+                extensions: ["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff", "mp4", "mkv", "mov", "webm", "avi"],
+              },
+            ],
           });
           const list = Array.isArray(files) ? files : files ? [files] : [];
           for (const path of list) {
@@ -65,7 +73,7 @@ export function ContextMenu({
           onClose();
         }}
       >
-        Mount files here
+        {t("mountFilesHere")}
       </button>
       <hr />
       <button
@@ -74,7 +82,7 @@ export function ContextMenu({
           onClose();
         }}
       >
-        Remove mapping
+        {t("removeMapping")}
       </button>
       <button
         onClick={() => {
@@ -82,7 +90,7 @@ export function ContextMenu({
           onClose();
         }}
       >
-        Remove mapping and delete originals…
+        {t("removeMappingAndFiles")}
       </button>
     </div>
   );

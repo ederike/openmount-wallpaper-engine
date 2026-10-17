@@ -1,154 +1,388 @@
 import { save, open } from "@tauri-apps/plugin-dialog";
+import { getVersion } from "@tauri-apps/api/app";
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useT } from "../i18n";
 import { savePlayback, useAppStore } from "../store";
-import { ACTION_LABELS, PlaybackSettings, ShortcutBinding } from "../types";
+import { Locale } from "../types";
+import { PlaybackSettings, ScrollOrder, ShortcutBinding } from "../types";
+import { checkAppUpdate, installAppUpdate } from "../updater";
 
 export function SettingsModal() {
+  const t = useT();
   const openFlag = useAppStore((s) => s.settingsOpen);
   const setOpen = useAppStore((s) => s.setSettingsOpen);
   const engine = useAppStore((s) => s.engine);
   const shortcuts = useAppStore((s) => s.shortcuts);
+  const locale = useAppStore((s) => s.locale);
+  const setLocale = useAppStore((s) => s.setLocale);
+  const thumbSize = useAppStore((s) => s.thumbSize);
+  const setThumbSize = useAppStore((s) => s.setThumbSize);
   const refreshAll = useAppStore((s) => s.refreshAll);
   const setToast = useAppStore((s) => s.setToast);
-  const [tab, setTab] = useState<"playback" | "scroll" | "keys" | "config">("playback");
+  const [tab, setTab] = useState<"config" | "keys">("config");
   const [draft, setDraft] = useState<PlaybackSettings | null>(engine?.settings ?? null);
   const [keys, setKeys] = useState<ShortcutBinding[]>(shortcuts);
+  const [appVersion, setAppVersion] = useState("");
+  const [updateBusy, setUpdateBusy] = useState(false);
 
   useEffect(() => {
     setDraft(engine?.settings ?? null);
   }, [engine]);
   useEffect(() => setKeys(shortcuts), [shortcuts]);
+  useEffect(() => {
+    void getVersion().then(setAppVersion);
+  }, []);
 
   if (!openFlag || !draft) return null;
 
-  const t = draft.traditional;
-  const s = draft.scroll;
+  const tr = draft.traditional;
+  const sc = draft.scroll;
 
   return (
     <div className="modal-backdrop" onClick={() => setOpen(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <header>
-          <h3>Settings</h3>
-          <button className="btn ghost" onClick={() => setOpen(false)}>Close</button>
+          <h3>{t("settingsTitle")}</h3>
+          <button className="btn ghost" onClick={() => setOpen(false)}>
+            {t("close")}
+          </button>
         </header>
-        <div className="body">
+        <div className="modal-body">
           <div className="tabs">
-            <button className={tab === "playback" ? "active" : ""} onClick={() => setTab("playback")}>Traditional</button>
-            <button className={tab === "scroll" ? "active" : ""} onClick={() => setTab("scroll")}>Scroll</button>
-            <button className={tab === "keys" ? "active" : ""} onClick={() => setTab("keys")}>Shortcuts</button>
-            <button className={tab === "config" ? "active" : ""} onClick={() => setTab("config")}>Config</button>
+            <button className={tab === "config" ? "active" : ""} onClick={() => setTab("config")}>
+              {t("tabConfig")}
+            </button>
+            <button className={tab === "keys" ? "active" : ""} onClick={() => setTab("keys")}>
+              {t("tabShortcuts")}
+            </button>
           </div>
 
-          {tab === "playback" && (
-            <div className="grid-form">
-              <label>
-                Mode
-                <select
-                  value={draft.mode}
-                  onChange={(e) => setDraft({ ...draft, mode: e.target.value as PlaybackSettings["mode"] })}
-                >
-                  <option value="traditional">Traditional</option>
-                  <option value="scroll">Scroll canvas</option>
-                </select>
-              </label>
-              <label>
-                Order
-                <select
-                  value={t.order}
-                  onChange={(e) => setDraft({ ...draft, traditional: { ...t, order: e.target.value as typeof t.order } })}
-                >
-                  <option value="custom">Folder custom order</option>
-                  <option value="name_asc">Name A–Z</option>
-                  <option value="name_desc">Name Z–A</option>
-                  <option value="random">Random</option>
-                </select>
-              </label>
-              <label>
-                Image dwell (ms)
-                <input type="number" min={500} value={t.image_dwell_ms} onChange={(e) => setDraft({ ...draft, traditional: { ...t, image_dwell_ms: Number(e.target.value) } })} />
-              </label>
-              <label>
-                Fade (ms)
-                <input type="number" min={0} value={t.fade_ms} onChange={(e) => setDraft({ ...draft, traditional: { ...t, fade_ms: Number(e.target.value) } })} />
-              </label>
-              <label>
-                Fill
-                <select value={t.fill_mode} onChange={(e) => setDraft({ ...draft, traditional: { ...t, fill_mode: e.target.value as typeof t.fill_mode } })}>
-                  <option value="cover">Cover</option>
-                  <option value="contain">Contain</option>
-                  <option value="stretch">Stretch</option>
-                  <option value="tile">Tile</option>
-                  <option value="center">Center</option>
-                </select>
-              </label>
-              <label>
-                Video end
-                <select value={t.video_end_action} onChange={(e) => setDraft({ ...draft, traditional: { ...t, video_end_action: e.target.value as typeof t.video_end_action } })}>
-                  <option value="next">Next item</option>
-                  <option value="loop">Loop current</option>
-                </select>
-              </label>
-              <label>
-                Background
-                <input type="color" value={t.background_color} onChange={(e) => setDraft({ ...draft, traditional: { ...t, background_color: e.target.value } })} />
-              </label>
-              <label className="switch">
-                Fade transition
-                <input type="checkbox" checked={t.fade_enabled} onChange={(e) => setDraft({ ...draft, traditional: { ...t, fade_enabled: e.target.checked } })} />
-              </label>
-              <label className="switch">
-                Avoid consecutive repeats
-                <input type="checkbox" checked={t.avoid_consecutive_repeat} onChange={(e) => setDraft({ ...draft, traditional: { ...t, avoid_consecutive_repeat: e.target.checked } })} />
-              </label>
-            </div>
-          )}
+          {tab === "config" && (
+            <div className="settings-scroll">
+              <h4>{t("sectionCommon")}</h4>
+              <div className="grid-form">
+                <label>
+                  {t("language")}
+                  <select value={locale} onChange={(e) => setLocale(e.target.value as Locale)}>
+                    <option value="zh">{t("langZh")}</option>
+                    <option value="en">{t("langEn")}</option>
+                  </select>
+                </label>
+                <label>
+                  {t("updateCurrent")}
+                  <div className="value">{appVersion || "…"}</div>
+                </label>
+                <label>
+                  {t("updateCheck")}
+                  <button
+                    className="btn"
+                    disabled={updateBusy}
+                    onClick={async () => {
+                      setUpdateBusy(true);
+                      try {
+                        const found = await checkAppUpdate();
+                        if (!found) {
+                          setToast(t("updateLatest"));
+                        } else {
+                          await installAppUpdate(found);
+                        }
+                      } catch (err) {
+                        setToast(`${t("updateFailed")}: ${String(err)}`);
+                      } finally {
+                        setUpdateBusy(false);
+                      }
+                    }}
+                  >
+                    {updateBusy ? t("updateInstalling") : t("updateCheck")}
+                  </button>
+                </label>
+                <label>
+                  {t("previewSize")}
+                  <input
+                    type="range"
+                    min={48}
+                    max={200}
+                    step={8}
+                    value={thumbSize}
+                    onChange={(e) => setThumbSize(Number(e.target.value))}
+                  />
+                  <span className="hint">{thumbSize}px</span>
+                </label>
+              </div>
 
-          {tab === "scroll" && (
-            <div className="grid-form">
-              <label>
-                Direction
-                <select value={s.direction} onChange={(e) => setDraft({ ...draft, scroll: { ...s, direction: e.target.value as typeof s.direction } })}>
-                  <option value="ltr">Left → right</option>
-                  <option value="rtl">Right → left</option>
-                </select>
-              </label>
-              <label>
-                Speed preset (1–10)
-                <input type="number" min={1} max={10} value={s.speed_preset} onChange={(e) => {
-                  const preset = Math.min(10, Math.max(1, Number(e.target.value)));
-                  const speeds = [8, 16, 24, 40, 64, 96, 140, 200, 280, 400];
-                  setDraft({ ...draft, scroll: { ...s, speed_preset: preset, speed_px_per_sec: speeds[preset - 1] ?? s.speed_px_per_sec } });
-                }} />
-              </label>
-              <label>
-                Custom px/sec
-                <input type="number" min={1} value={s.speed_px_per_sec} onChange={(e) => setDraft({ ...draft, scroll: { ...s, speed_px_per_sec: Number(e.target.value) } })} />
-              </label>
-              <label>
-                Gap (px)
-                <input type="number" min={0} value={s.gap_px} onChange={(e) => setDraft({ ...draft, scroll: { ...s, gap_px: Number(e.target.value) } })} />
-              </label>
-              <label>
-                Opacity
-                <input type="number" min={0.1} max={1} step={0.05} value={s.opacity} onChange={(e) => setDraft({ ...draft, scroll: { ...s, opacity: Number(e.target.value) } })} />
-              </label>
-              <label>
-                Video preload (sec)
-                <input type="number" min={0} value={s.preload_seconds} onChange={(e) => setDraft({ ...draft, scroll: { ...s, preload_seconds: Number(e.target.value) } })} />
-              </label>
-              <label className="switch">
-                Loop canvas
-                <input type="checkbox" checked={s.loop_enabled} onChange={(e) => setDraft({ ...draft, scroll: { ...s, loop_enabled: e.target.checked } })} />
-              </label>
+              <h4>{t("sectionMode")}</h4>
+              <div className="grid-form">
+                <label className="span-2">
+                  {t("mode")}
+                  <select
+                    value={draft.mode}
+                    onChange={(e) =>
+                      setDraft({ ...draft, mode: e.target.value as PlaybackSettings["mode"] })
+                    }
+                  >
+                    <option value="traditional">{t("modeTraditional")}</option>
+                    <option value="scroll">{t("modeScroll")}</option>
+                  </select>
+                </label>
+              </div>
+
+              {draft.mode === "traditional" ? (
+                <div className="grid-form">
+                  <label>
+                    {t("order")}
+                    <select
+                      value={tr.order}
+                      onChange={(e) =>
+                        setDraft({ ...draft, traditional: { ...tr, order: e.target.value as typeof tr.order } })
+                      }
+                    >
+                      <option value="custom">{t("orderCustom")}</option>
+                      <option value="name_asc">{t("orderNameAsc")}</option>
+                      <option value="name_desc">{t("orderNameDesc")}</option>
+                      <option value="random">{t("orderRandom")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("imageDwell")}
+                    <input
+                      type="number"
+                      min={500}
+                      value={tr.image_dwell_ms}
+                      onChange={(e) =>
+                        setDraft({ ...draft, traditional: { ...tr, image_dwell_ms: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {t("fadeMs")}
+                    <input
+                      type="number"
+                      min={0}
+                      value={tr.fade_ms}
+                      onChange={(e) =>
+                        setDraft({ ...draft, traditional: { ...tr, fade_ms: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {t("fill")}
+                    <select
+                      value={tr.fill_mode}
+                      onChange={(e) =>
+                        setDraft({ ...draft, traditional: { ...tr, fill_mode: e.target.value as typeof tr.fill_mode } })
+                      }
+                    >
+                      <option value="cover">{t("fillCover")}</option>
+                      <option value="contain">{t("fillContain")}</option>
+                      <option value="stretch">{t("fillStretch")}</option>
+                      <option value="tile">{t("fillTile")}</option>
+                      <option value="center">{t("fillCenter")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("videoEnd")}
+                    <select
+                      value={tr.video_end_action}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          traditional: { ...tr, video_end_action: e.target.value as typeof tr.video_end_action },
+                        })
+                      }
+                    >
+                      <option value="next">{t("videoEndNext")}</option>
+                      <option value="loop">{t("videoEndLoop")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("background")}
+                    <input
+                      type="color"
+                      value={tr.background_color}
+                      onChange={(e) =>
+                        setDraft({ ...draft, traditional: { ...tr, background_color: e.target.value } })
+                      }
+                    />
+                  </label>
+                  <label className="switch">
+                    {t("fadeTransition")}
+                    <input
+                      type="checkbox"
+                      checked={tr.fade_enabled}
+                      onChange={(e) =>
+                        setDraft({ ...draft, traditional: { ...tr, fade_enabled: e.target.checked } })
+                      }
+                    />
+                  </label>
+                  <label className="switch">
+                    {t("avoidRepeat")}
+                    <input
+                      type="checkbox"
+                      checked={tr.avoid_consecutive_repeat}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          traditional: { ...tr, avoid_consecutive_repeat: e.target.checked },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="grid-form">
+                  <label className="span-2">
+                    {t("scrollOrder")}
+                    <select
+                      value={sc.order ?? "folder_custom"}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, order: e.target.value as ScrollOrder } })
+                      }
+                    >
+                      <option value="folder_custom">{t("scrollFolderCustom")}</option>
+                      <option value="folder_name">{t("scrollFolderName")}</option>
+                      <option value="all_name_asc">{t("scrollAllNameAsc")}</option>
+                      <option value="all_name_desc">{t("scrollAllNameDesc")}</option>
+                      <option value="all_modified">{t("scrollAllModified")}</option>
+                      <option value="random">{t("scrollRandom")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("direction")}
+                    <select
+                      value={sc.direction}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, direction: e.target.value as typeof sc.direction } })
+                      }
+                    >
+                      <option value="ltr">{t("dirLtr")}</option>
+                      <option value="rtl">{t("dirRtl")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("speedPreset")}
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={sc.speed_preset}
+                      onChange={(e) => {
+                        const preset = Math.min(10, Math.max(1, Number(e.target.value)));
+                        const speeds = [8, 16, 24, 40, 64, 96, 140, 200, 280, 400];
+                        setDraft({
+                          ...draft,
+                          scroll: {
+                            ...sc,
+                            speed_preset: preset,
+                            speed_px_per_sec: speeds[preset - 1] ?? sc.speed_px_per_sec,
+                          },
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    {t("speedCustom")}
+                    <input
+                      type="number"
+                      min={1}
+                      value={sc.speed_px_per_sec}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, speed_px_per_sec: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {t("gap")}
+                    <input
+                      type="number"
+                      min={0}
+                      value={sc.gap_px}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, gap_px: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {t("opacity")}
+                    <input
+                      type="number"
+                      min={0.1}
+                      max={1}
+                      step={0.05}
+                      value={sc.opacity}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, opacity: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {t("videoPreload")}
+                    <input
+                      type="number"
+                      min={0}
+                      value={sc.preload_seconds}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, preload_seconds: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                  <label className="switch">
+                    {t("loopCanvas")}
+                    <input
+                      type="checkbox"
+                      checked={sc.loop_enabled}
+                      onChange={(e) =>
+                        setDraft({ ...draft, scroll: { ...sc, loop_enabled: e.target.checked } })
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+
+              <div className="modal-actions wrap">
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const path = await save({
+                      defaultPath: "omwe-config.json",
+                      filters: [{ name: "JSON", extensions: ["json"] }],
+                    });
+                    if (path) {
+                      await api.exportConfig(path);
+                      setToast(t("toastExported"));
+                    }
+                  }}
+                >
+                  {t("exportConfig")}
+                </button>
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const path = await open({ filters: [{ name: "JSON", extensions: ["json"] }] });
+                    if (typeof path === "string") {
+                      await api.importConfig(path);
+                      await refreshAll();
+                      setToast(t("toastImported"));
+                    }
+                  }}
+                >
+                  {t("importConfig")}
+                </button>
+                <button
+                  className="btn primary"
+                  onClick={() => void savePlayback(draft).then(() => setToast(t("toastSaved")))}
+                >
+                  {t("savePlayback")}
+                </button>
+              </div>
             </div>
           )}
 
           {tab === "keys" && (
-            <div>
+            <div className="settings-scroll">
               {keys.map((row) => (
                 <div className="shortcut-row" key={row.action}>
-                  <span>{ACTION_LABELS[row.action] ?? row.action}</span>
+                  <span>{t.action(row.action)}</span>
                   <input
                     className="kbd"
                     value={row.accelerator}
@@ -161,53 +395,23 @@ export function SettingsModal() {
                         setKeys(next);
                       } catch (err) {
                         setToast(String(err));
-                        const restored = await api.getShortcuts();
-                        setKeys(restored);
+                        setKeys(await api.getShortcuts());
                       }
                     }}
                   />
                 </div>
               ))}
-              <button className="btn" style={{ marginTop: 12 }} onClick={() => void api.restoreShortcuts().then(setKeys)}>
-                Restore defaults
-              </button>
-            </div>
-          )}
-
-          {tab === "config" && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 className="btn"
-                onClick={async () => {
-                  const path = await save({ defaultPath: "omwe-config.json", filters: [{ name: "JSON", extensions: ["json"] }] });
-                  if (path) {
-                    await api.exportConfig(path);
-                    setToast("Config exported");
-                  }
-                }}
+                style={{ marginTop: 12 }}
+                onClick={() =>
+                  void api.restoreShortcuts().then((next) => {
+                    setKeys(next);
+                    setToast(t("toastShortcutsRestored"));
+                  })
+                }
               >
-                Export config pack
-              </button>
-              <button
-                className="btn"
-                onClick={async () => {
-                  const path = await open({ filters: [{ name: "JSON", extensions: ["json"] }] });
-                  if (typeof path === "string") {
-                    await api.importConfig(path);
-                    await refreshAll();
-                    setToast("Config imported");
-                  }
-                }}
-              >
-                Import config pack
-              </button>
-            </div>
-          )}
-
-          {(tab === "playback" || tab === "scroll") && (
-            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn primary" onClick={() => void savePlayback(draft).then(() => setToast("Playback settings saved"))}>
-                Save playback
+                {t("restoreShortcuts")}
               </button>
             </div>
           )}

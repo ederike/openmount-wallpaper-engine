@@ -1,9 +1,11 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { api } from "../api";
-import { formatBytes, formatModified, kindLabel } from "../lib/format";
+import { useT } from "../i18n";
+import { formatBytes, formatModified } from "../lib/format";
 import { useAppStore } from "../store";
 
 export function Inspector() {
+  const t = useT();
   const children = useAppStore((s) => s.children);
   const tree = useAppStore((s) => s.tree);
   const inspectId = useAppStore((s) => s.inspectId);
@@ -16,9 +18,9 @@ export function Inspector() {
   if (!node) {
     return (
       <aside className="inspector">
-        <div className="pane-title">Inspector</div>
+        <div className="pane-title">{t("inspector")}</div>
         <div className="inspector-body">
-          <p className="empty">Select a mount node to inspect mapping, playback, and detection.</p>
+          <p className="empty">{t("inspectorEmpty")}</p>
         </div>
       </aside>
     );
@@ -33,20 +35,24 @@ export function Inspector() {
     const picked = await open({
       directory: node!.is_folder,
       multiple: false,
-      title: "Relocate original path",
+      title: t("dialogRelocate"),
     });
     if (typeof picked !== "string") return;
     await api.relocate(node!.id, picked);
     await refreshAll();
-    setToast("Path updated");
+    setToast(t("toastPathUpdated"));
   }
+
+  const kind = view
+    ? `${view.is_folder ? t("folder") : view.media_kind === "video" ? t("video") : t("image")}${view.exists ? "" : ` · ${t("missing")}`}`
+    : t("folder");
 
   return (
     <aside className="inspector">
-      <div className="pane-title">Inspector</div>
+      <div className="pane-title">{t("inspector")}</div>
       <div className="inspector-body">
         <div className="field">
-          <label>Display name</label>
+          <label>{t("displayName")}</label>
           <input
             type="text"
             defaultValue={node.display_name}
@@ -57,23 +63,21 @@ export function Inspector() {
           />
         </div>
         <div className="field">
-          <label>Original path</label>
+          <label>{t("originalPath")}</label>
           <div className="value">{node.original_path}</div>
         </div>
         <div className="field">
-          <label>Kind</label>
-          <div className="value">
-            {view ? `${kindLabel(view)}${view.exists ? "" : " · missing"}` : "Folder"}
-          </div>
+          <label>{t("kind")}</label>
+          <div className="value">{kind}</div>
         </div>
         <div className="field">
-          <label>Size / modified</label>
+          <label>{t("sizeModified")}</label>
           <div className="value">
             {formatBytes(view?.size)} · {formatModified(view?.modified_at)}
           </div>
         </div>
         <label className="switch">
-          In playback pool
+          {t("inPool")}
           <input
             type="checkbox"
             checked={node.selected}
@@ -83,7 +87,7 @@ export function Inspector() {
         {node.is_folder && (
           <>
             <label className="switch">
-              Continuous detection
+              {t("continuousDetection")}
               <input
                 type="checkbox"
                 checked={node.continuous_detection}
@@ -93,7 +97,7 @@ export function Inspector() {
               />
             </label>
             <label className="switch">
-              Lock detection (ignore parent)
+              {t("lockDetection")}
               <input
                 type="checkbox"
                 checked={node.detection_locked}
@@ -104,7 +108,9 @@ export function Inspector() {
             </label>
           </>
         )}
-        <button className="btn" onClick={() => void relocate()}>Relocate original</button>
+        <button className="btn" onClick={() => void relocate()}>
+          {t("relocate")}
+        </button>
       </div>
     </aside>
   );

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "OpenMount",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "dev.openmount.omwe",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -38,7 +38,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost blob: data: https://asset.localhost; media-src 'self' asset: http://asset.localhost blob: https://asset.localhost; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420",
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost blob: data: https://asset.localhost; media-src 'self' asset: http://asset.localhost blob: https://asset.localhost; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420 https://api.github.com https://github.com https://objects.githubusercontent.com https://release-assets.githubusercontent.com",
       "assetProtocol": {
         "enable": true,
         "scope": {
@@ -75,6 +75,18 @@
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
     "shortDescription": "Mount-mapped wallpaper engine",
-    "longDescription": "OpenMount Wallpaper Engine maps local image and video libraries into a virtual tree, then plays them as a traditional slideshow or a scrolling canvas wallpaper."
+    "longDescription": "OpenMount Wallpaper Engine maps local image and video libraries into a virtual tree, then plays them as a traditional slideshow or a scrolling canvas wallpaper.",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM4OEQ1N0RCNDY4NzFCNTEKUldSUkc0ZEcyMWVOeUVZUC82L01WWXdFV2FHZjB3NzBidDhoVVdkdkhoY2JQSVNnUXdHc1BzRzMK",
+      "endpoints": [
+        "https://github.com/ederike/openmount-wallpaper-engine/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

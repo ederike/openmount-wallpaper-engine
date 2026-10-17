@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { MountNode } from "../types";
 import { useAppStore } from "../store";
 import { api } from "../api";
@@ -46,19 +47,20 @@ function TreeRows({
 }
 
 export function Sidebar() {
+  const t = useT();
   const tree = useAppStore((s) => s.tree);
   const currentFolderId = useAppStore((s) => s.currentFolderId);
   const openFolder = useAppStore((s) => s.openFolder);
 
   return (
     <aside className="sidebar">
-      <div className="pane-title">Mount tree</div>
+      <div className="pane-title">{t("mountTree")}</div>
       <div className="tree">
         <div
           className={`tree-item ${currentFolderId === null ? "active" : ""}`}
           onClick={() => void openFolder(null)}
         >
-          <span className="tree-label">Library root</span>
+          <span className="tree-label">{t("libraryRoot")}</span>
         </div>
         <TreeRows nodes={tree} parentId={null} depth={0} />
       </div>

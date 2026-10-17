@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { api, onEngineState, onUiEvent } from "./api";
+import { translate } from "./i18n";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { ContextMenu } from "./components/ContextMenu";
 import { FileView } from "./components/FileView";
@@ -9,6 +10,7 @@ import { SettingsModal } from "./components/SettingsModal";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { useAppStore } from "./store";
 import { MountNodeView } from "./types";
 
@@ -34,7 +36,10 @@ export default function App() {
     }).then((u) => unsubs.push(u));
     void onUiEvent("ui://mount", () => {
       void (async () => {
-        const folder = await open({ directory: true, title: "Mount folder" });
+        const folder = await open({
+          directory: true,
+          title: translate(useAppStore.getState().locale, "dialogMountFolder"),
+        });
         if (typeof folder === "string") {
           await api.mountPath(folder, useAppStore.getState().currentFolderId);
           await refreshAll();
@@ -70,6 +75,7 @@ export default function App() {
 
   return (
     <div className="app" onClick={() => setMenu(null)}>
+      <UpdateBanner />
       <Toolbar />
       <div className="body">
         <Sidebar />

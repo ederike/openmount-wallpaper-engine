@@ -37,6 +37,8 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "OpenMount ${{ github.ref_name }}"
@@ -45,9 +47,15 @@ jobs:
 
             GPL-3.0-or-later. Source: this repository.
 
+            - Scroll pause/resume keeps the current position
+            - Scroll next/prev snaps the leading image to the screen edge
+            - In-app update check
+            - Chinese UI, preview thumbs, and settings layout fixes
+
             Bundles:
             - Windows x86_64: NSIS installer and MSI
             - macOS Universal (Apple Silicon + Intel): DMG
           releaseDraft: false
           prerelease: false
+          includeUpdaterJson: true
           args: ${{ matrix.args }}

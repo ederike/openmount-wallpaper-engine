@@ -21,9 +21,4 @@ export function formatModified(epoch: number | null | undefined): string {
   });
 }
 
-export function kindLabel(node: { is_folder: boolean; media_kind: string | null }): string {
-  if (node.is_folder) return "Folder";
-  if (node.media_kind === "video") return "Video";
-  if (node.media_kind === "image") return "Image";
-  return "File";
-}
+

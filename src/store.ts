@@ -3,6 +3,7 @@ import { api } from "./api";
 import {
   EngineState,
   KindFilter,
+  Locale,
   MountNode,
   MountNodeView,
   PlaybackSettings,
@@ -30,7 +31,11 @@ interface AppStore {
   toast: string | null;
   loading: boolean;
   error: string | null;
+  locale: Locale;
+  thumbSize: number;
   setViewMode: (mode: ViewMode) => void;
+  setLocale: (locale: Locale) => void;
+  setThumbSize: (size: number) => void;
   setSort: (sort: SortSpec) => void;
   setQuery: (query: string) => void;
   setKindFilter: (filter: KindFilter) => void;
@@ -70,16 +75,27 @@ const defaultEngine = (): EngineState => ({
       opacity: 1,
       loop_enabled: true,
       preload_seconds: 2,
+      order: "folder_custom",
     },
   },
 });
+
+function loadLocale(): Locale {
+  const raw = localStorage.getItem("omwe.locale");
+  return raw === "en" ? "en" : "zh";
+}
+
+function loadThumbSize(): number {
+  const raw = Number(localStorage.getItem("omwe.thumbSize"));
+  return Number.isFinite(raw) && raw >= 40 && raw <= 220 ? raw : 88;
+}
 
 export const useAppStore = create<AppStore>((set, get) => ({
   tree: [],
   children: [],
   currentFolderId: null,
   crumbs: [],
-  viewMode: "list",
+  viewMode: "thumb",
   sort: { key: "custom", ascending: true },
   query: "",
   kindFilter: "all",
@@ -93,7 +109,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
   toast: null,
   loading: false,
   error: null,
+  locale: loadLocale(),
+  thumbSize: loadThumbSize(),
   setViewMode: (viewMode) => set({ viewMode }),
+  setLocale: (locale) => {
+    localStorage.setItem("omwe.locale", locale);
+    set({ locale });
+  },
+  setThumbSize: (thumbSize) => {
+    localStorage.setItem("omwe.thumbSize", String(thumbSize));
+    set({ thumbSize });
+  },
   setSort: (sort) => {
     set({ sort });
     void get().openFolder(get().currentFolderId);

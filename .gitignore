@@ -16,6 +16,7 @@ target/
 # Logs
 *.log
 npm-debug.log*
+问题汇总.md
 
 # Editor
 .idea/
@@ -26,6 +27,8 @@ npm-debug.log*
 # Env
 .env
 .env.local
+*.key
+*.key.pub
 
 # Test / coverage
 coverage/

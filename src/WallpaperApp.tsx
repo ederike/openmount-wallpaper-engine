@@ -126,12 +126,61 @@ interface Measured {
   height: number;
 }
 
+const scrollMemory = { poolKey: "", offset: 0 };
+
+function poolKey(pool: PlaybackItem[]): string {
+  return pool.map((item) => `${item.node_id}:${item.path}`).join("|");
+}
+
+function wrapOffset(value: number, total: number): number {
+  if (total <= 0) return 0;
+  let next = value % total;
+  if (next < 0) next += total;
+  return next;
+}
+
+function itemDocks(measured: Measured[], gap: number, screenW: number, leadingRight: boolean): number[] {
+  const docks: number[] = [];
+  let base = 0;
+  for (const item of measured) {
+    docks.push(leadingRight ? base + item.width - screenW : base);
+    base += item.width + gap;
+  }
+  return docks;
+}
+
+function snapDock(
+  current: number,
+  docks: number[],
+  total: number,
+  forward: boolean,
+  loop: boolean,
+): number {
+  if (docks.length === 0) return current;
+  const eps = 6;
+  const ordered = docks.map((d) => wrapOffset(d, Math.max(total, 1)));
+  if (forward) {
+    const next = ordered.filter((d) => d > current + eps).sort((a, b) => a - b)[0];
+    if (next != null) return next;
+    return loop ? ordered.reduce((min, d) => Math.min(min, d), ordered[0] ?? 0) : current;
+  }
+  const prev = ordered.filter((d) => d < current - eps).sort((a, b) => b - a)[0];
+  if (prev != null) return prev;
+  return loop ? ordered.reduce((max, d) => Math.max(max, d), ordered[0] ?? 0) : current;
+}
+
+function applyOffset(strip: HTMLDivElement | null, value: number) {
+  if (strip) strip.style.transform = `translate3d(${-value}px,0,0)`;
+}
+
 function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: number }) {
   const [measured, setMeasured] = useState<Measured[]>([]);
-  const offset = useRef(0);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [tick, setTick] = useState(0);
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const offset = useRef(scrollMemory.offset);
+  const stripRef = useRef<HTMLDivElement>(null);
+  const measuredRef = useRef<Measured[]>([]);
   const settings = engine.settings.scroll;
+  const key = poolKey(engine.pool);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,29 +194,70 @@ function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: 
         results.push({
           item,
           src,
-          width: size.w * scale,
+          width: Math.max(1, size.w * scale),
           height: screenH,
         });
       }
       if (!cancelled) {
+        measuredRef.current = results;
         setMeasured(results);
-        offset.current = 0;
+        if (scrollMemory.poolKey !== key) {
+          scrollMemory.poolKey = key;
+          scrollMemory.offset = 0;
+          offset.current = 0;
+        }
+        applyOffset(stripRef.current, offset.current);
       }
     }
     void measure();
     return () => {
       cancelled = true;
     };
-  }, [engine.pool, resetToken]);
+    // Re-measure only when the pool identity changes, not on pause/resume.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, resetToken]);
 
+  const copies = settings.loop_enabled ? 2 : 1;
   const total = useMemo(
     () => measured.reduce((sum, m) => sum + m.width + settings.gap_px, 0),
     [measured, settings.gap_px],
   );
 
   useEffect(() => {
+    if (resetToken === 0) return;
+    offset.current = 0;
+    scrollMemory.offset = 0;
+    applyOffset(stripRef.current, 0);
+  }, [resetToken]);
+
+  useEffect(() => {
+    const unlisten = listen<{ forward: boolean }>("engine://scroll-skip", (event) => {
+      const items = measuredRef.current;
+      const length = items.reduce((sum, item) => sum + item.width + settings.gap_px, 0);
+      if (length <= 0) return;
+      const leadingRight = settings.direction !== "rtl";
+      const docks = itemDocks(items, settings.gap_px, window.innerWidth, leadingRight);
+      const forward = leadingRight ? event.payload.forward : !event.payload.forward;
+      offset.current = snapDock(
+        offset.current,
+        docks,
+        length,
+        forward,
+        settings.loop_enabled,
+      );
+      scrollMemory.offset = offset.current;
+      applyOffset(stripRef.current, offset.current);
+    });
+    return () => {
+      void unlisten.then((u) => u());
+    };
+  }, [settings.direction, settings.gap_px, settings.loop_enabled]);
+
+  useEffect(() => {
     let frame = 0;
     let last = performance.now();
+    let lastActive: string | null = null;
+    const screenW = window.innerWidth;
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -175,72 +265,97 @@ function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: 
         const dir = settings.direction === "rtl" ? -1 : 1;
         offset.current += dir * settings.speed_px_per_sec * dt;
         if (settings.loop_enabled) {
-          if (offset.current > total) offset.current -= total;
-          if (offset.current < 0) offset.current += total;
+          offset.current = wrapOffset(offset.current, total);
         }
-        setTick((n) => n + 1);
+        scrollMemory.offset = offset.current;
+      }
+      applyOffset(stripRef.current, offset.current);
+      if (total > 0) {
+        let bestId: string | null = null;
+        let bestOverlap = 0;
+        let x = 0;
+        for (const m of measured) {
+          if (m.item.kind === "video") {
+            const left = x - offset.current;
+            const overlap = Math.min(left + m.width, screenW) - Math.max(left, 0);
+            if (overlap > bestOverlap) {
+              bestOverlap = overlap;
+              bestId = m.item.node_id;
+            }
+          }
+          x += m.width + settings.gap_px;
+        }
+        if (bestOverlap < 8) bestId = null;
+        if (bestId !== lastActive) {
+          lastActive = bestId;
+          setActiveVideo(engine.paused ? null : bestId);
+        }
       }
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [engine.running, engine.paused, settings.direction, settings.speed_px_per_sec, settings.loop_enabled, total]);
-
-  const screenW = typeof window === "undefined" ? 1920 : window.innerWidth;
-  void tick;
-
-  let cursor = 0;
-  const placed = measured.map((m) => {
-    const base = cursor;
-    cursor += m.width + settings.gap_px;
-    return { m, base };
-  });
-  const shifts = settings.loop_enabled ? [0, total] : [0];
+  }, [
+    engine.running,
+    engine.paused,
+    settings.direction,
+    settings.speed_px_per_sec,
+    settings.loop_enabled,
+    settings.gap_px,
+    total,
+    measured,
+  ]);
 
   return (
     <div className="wallpaper" style={{ opacity: settings.opacity }}>
-      <div className="scroll-stage" ref={stageRef}>
-        {placed.flatMap(({ m, base }, index) =>
-          shifts.map((shift) => {
-            const left = base - offset.current + shift;
-            const visible = left + m.width > -screenW && left < screenW * 2;
-            const inView = left < screenW && left + m.width > 0;
-            if (!visible) return null;
-            return (
+      <div className="scroll-stage">
+        <div
+          ref={stripRef}
+          className="scroll-strip"
+          style={{ gap: settings.gap_px, willChange: "transform" }}
+        >
+          {Array.from({ length: copies }, (_, copy) =>
+            measured.map((m) => (
               <div
-                key={`${m.item.node_id}-${index}-${shift}`}
+                key={`${copy}-${m.item.node_id}`}
                 className="scroll-item"
-                style={{ left, width: m.width, height: m.height }}
+                style={{ width: m.width, height: m.height, contentVisibility: "auto" }}
               >
                 {m.item.kind === "video" ? (
-                  <ScrollVideo src={m.src} active={inView} preloadLead={settings.preload_seconds} />
+                  <ScrollVideo
+                    src={m.src}
+                    active={activeVideo === m.item.node_id && copy === 0 && !engine.paused}
+                  />
                 ) : (
-                  <img src={m.src} alt="" />
+                  <img src={m.src} alt="" decoding="async" />
                 )}
               </div>
-            );
-          }),
-        )}
+            )),
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function ScrollVideo({ src, active, preloadLead }: { src: string; active: boolean; preloadLead: number }) {
+function ScrollVideo({ src, active }: { src: string; active: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (active) {
-      const t = window.setTimeout(() => {
-        void el.play().catch(() => undefined);
-      }, Math.max(0, preloadLead) * 0);
-      return () => window.clearTimeout(t);
+      if (el.getAttribute("src") !== src) {
+        el.src = src;
+      }
+      void el.play().catch(() => undefined);
+      return undefined;
     }
     el.pause();
+    el.removeAttribute("src");
+    el.load();
     return undefined;
-  }, [active, preloadLead]);
-  return <video ref={ref} src={src} muted playsInline loop preload="auto" />;
+  }, [active, src]);
+  return <video ref={ref} muted playsInline loop preload={active ? "auto" : "none"} />;
 }
 
 function naturalSize(item: PlaybackItem, src: string): Promise<{ w: number; h: number }> {

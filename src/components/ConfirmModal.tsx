@@ -1,36 +1,55 @@
+import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useT } from "../i18n";
 import { useAppStore } from "../store";
 
 export function ConfirmModal() {
+  const t = useT();
   const confirm = useAppStore((s) => s.confirm);
   const setConfirm = useAppStore((s) => s.setConfirm);
   const refreshAll = useAppStore((s) => s.refreshAll);
   const setToast = useAppStore((s) => s.setToast);
+  const [deleteOriginal, setDeleteOriginal] = useState(false);
+
+  useEffect(() => {
+    setDeleteOriginal(confirm?.deleteOriginal ?? false);
+  }, [confirm]);
+
   if (!confirm) return null;
+
+  const alsoDelete = confirm.deleteOriginal || deleteOriginal;
 
   return (
     <div className="modal-backdrop" onClick={() => setConfirm(null)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: 420 }}>
+      <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
         <header>
-          <h3>Remove mount{confirm.ids.length > 1 ? "s" : ""}</h3>
+          <h3>{t("confirmTitle")}</h3>
         </header>
-        <div className="body">
-          <p>Default action removes only the mapping inside OpenMount. Original files stay on disk.</p>
-          {confirm.deleteOriginal && (
-            <p className="confirm-danger">You chose to also delete original files. This cannot be undone.</p>
-          )}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-            <button className="btn ghost" onClick={() => setConfirm(null)}>Cancel</button>
+        <div className="modal-body">
+          <p>{t("confirmBody")}</p>
+          <label className="switch confirm-option">
+            {t("confirmDeleteOriginal")}
+            <input
+              type="checkbox"
+              checked={alsoDelete}
+              onChange={(e) => setDeleteOriginal(e.target.checked)}
+            />
+          </label>
+          <div className="modal-actions">
+            <button className="btn ghost" onClick={() => setConfirm(null)}>
+              {t("cancel")}
+            </button>
             <button
-              className={`btn ${confirm.deleteOriginal ? "danger" : "primary"}`}
+              className={`btn ${alsoDelete ? "danger" : "primary"}`}
               onClick={async () => {
-                await api.deleteNodes(confirm.ids, confirm.deleteOriginal);
+                await api.deleteNodes(confirm.ids, alsoDelete);
                 setConfirm(null);
+                setDeleteOriginal(false);
                 await refreshAll();
-                setToast(confirm.deleteOriginal ? "Mapping and original files removed" : "Mapping removed");
+                setToast(alsoDelete ? t("toastFilesRemoved") : t("toastMappingRemoved"));
               }}
             >
-              {confirm.deleteOriginal ? "Delete originals" : "Remove mapping"}
+              {t("confirmRemove")}
             </button>
           </div>
         </div>

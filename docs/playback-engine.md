@@ -18,7 +18,15 @@ The wallpaper renderer shows the current pool item.
 
 Every pool item is scaled so its height equals the primary display height, then laid out left-to-right with a configurable gap (default 2px). The canvas translates at `speed_px_per_sec`.
 
-A video starts when its left edge enters the visible region and pauses when its right edge leaves.
+Order options:
+
+- by folder, custom order inside each folder
+- by folder, name order inside each folder
+- flatten all files by name, modified time, or random
+
+Only the video with the largest on-screen overlap plays. Other videos release their decoder so adjacent clips do not stutter.
+
+Pause keeps the current offset. Next/previous snaps the leading image so its entering edge aligns with the screen edge, then the canvas continues from there.
 
 ## Controls
 

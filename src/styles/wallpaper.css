@@ -33,10 +33,16 @@ html, body, #root, .wallpaper {
   inset: 0;
   overflow: hidden;
 }
-.scroll-item {
-  position: absolute;
-  top: 0;
+.scroll-strip {
+  display: flex;
   height: 100%;
+  align-items: stretch;
+}
+.scroll-item {
+  position: relative;
+  flex: none;
+  height: 100%;
+  overflow: hidden;
 }
 .scroll-item img, .scroll-item video {
   width: 100%;

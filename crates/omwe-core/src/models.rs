@@ -140,6 +140,18 @@ impl Default for TraditionalSettings {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ScrollOrder {
+    #[default]
+    FolderCustom,
+    FolderName,
+    AllNameAsc,
+    AllNameDesc,
+    AllModified,
+    Random,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ScrollSettings {
     pub direction: ScrollDirection,
@@ -149,6 +161,8 @@ pub struct ScrollSettings {
     pub opacity: f64,
     pub loop_enabled: bool,
     pub preload_seconds: f64,
+    #[serde(default)]
+    pub order: ScrollOrder,
 }
 
 impl Default for ScrollSettings {
@@ -161,6 +175,7 @@ impl Default for ScrollSettings {
             opacity: 1.0,
             loop_enabled: true,
             preload_seconds: 2.0,
+            order: ScrollOrder::FolderCustom,
         }
     }
 }

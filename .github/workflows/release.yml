@@ -47,6 +47,7 @@ jobs:
 
             GPL-3.0-or-later. Source: this repository.
 
+            - Status bar stays pinned as a 28px footer and no longer covers the main window
             - Scroll pause/resume keeps the current position
             - Scroll next/prev snaps the leading image to the screen edge
             - In-app update check

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-10-20
+
+- Status bar stays a 28px footer instead of covering the main window when no update banner is shown
+
 ## 0.2.0 — 2026-10-17
 
 - Chinese UI with a language switch, plus English

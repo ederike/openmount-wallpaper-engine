@@ -75,8 +75,10 @@ export default function App() {
 
   return (
     <div className="app" onClick={() => setMenu(null)}>
-      <UpdateBanner />
-      <Toolbar />
+      <div className="chrome-top">
+        <UpdateBanner />
+        <Toolbar />
+      </div>
       <div className="body">
         <Sidebar />
         <FileView

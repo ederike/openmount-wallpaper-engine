@@ -47,11 +47,12 @@ jobs:
 
             GPL-3.0-or-later. Source: this repository.
 
+            - Wallpaper sits behind desktop icons on Windows 11 24H2 and macOS
+            - Scroll canvas fills the screen after the wallpaper window resizes
+            - Shortcut settings record a key combination instead of typed text
             - Status bar stays pinned as a 28px footer and no longer covers the main window
             - Scroll pause/resume keeps the current position
-            - Scroll next/prev snaps the leading image to the screen edge
             - In-app update check
-            - Chinese UI, preview thumbs, and settings layout fixes
 
             Bundles:
             - Windows x86_64: NSIS installer and MSI

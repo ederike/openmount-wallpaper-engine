@@ -496,6 +496,19 @@ button { cursor: pointer; }
   padding: 4px 8px;
   text-align: center;
   width: 100%;
+  min-height: 32px;
+  cursor: pointer;
+}
+.kbd:hover { background: var(--bg-hover); border-color: var(--line-strong); }
+.kbd.recording {
+  border-color: var(--copper);
+  color: var(--copper);
+  background: color-mix(in srgb, var(--copper) 12%, var(--bg-sunken));
+}
+.shortcut-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 12px;
 }
 .thumb-size-ctrl {
   display: inline-flex;

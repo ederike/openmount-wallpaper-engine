@@ -37,6 +37,7 @@ html, body, #root, .wallpaper {
   display: flex;
   height: 100%;
   align-items: stretch;
+  min-height: 100%;
 }
 .scroll-item {
   position: relative;

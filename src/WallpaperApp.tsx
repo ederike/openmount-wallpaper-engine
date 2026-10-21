@@ -119,6 +119,13 @@ function MediaLayer({
   );
 }
 
+interface Natural {
+  item: PlaybackItem;
+  src: string;
+  natW: number;
+  natH: number;
+}
+
 interface Measured {
   item: PlaybackItem;
   src: string;
@@ -173,49 +180,96 @@ function applyOffset(strip: HTMLDivElement | null, value: number) {
   if (strip) strip.style.transform = `translate3d(${-value}px,0,0)`;
 }
 
+function layoutFromNaturals(naturals: Natural[], height: number): Measured[] {
+  const h = Math.max(height, 1);
+  return naturals.map((n) => ({
+    item: n.item,
+    src: n.src,
+    width: Math.max(1, (n.natW / Math.max(n.natH, 1)) * h),
+    height: h,
+  }));
+}
+
 function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: number }) {
-  const [measured, setMeasured] = useState<Measured[]>([]);
+  const [naturals, setNaturals] = useState<Natural[]>([]);
+  const [stage, setStage] = useState({ w: 0, h: 0 });
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const offset = useRef(scrollMemory.offset);
   const stripRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const measuredRef = useRef<Measured[]>([]);
+  const stageRefSize = useRef(stage);
   const settings = engine.settings.scroll;
   const key = poolKey(engine.pool);
+  stageRefSize.current = stage;
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const apply = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setStage((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener("resize", apply);
+    visualViewport?.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+      visualViewport?.removeEventListener("resize", apply);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    async function measure() {
-      const screenH = window.innerHeight;
-      const results: Measured[] = [];
+    async function load() {
+      const results: Natural[] = [];
       for (const item of engine.pool) {
         const src = convertFileSrc(item.path);
         const size = await naturalSize(item, src);
-        const scale = screenH / Math.max(size.h, 1);
         results.push({
           item,
           src,
-          width: Math.max(1, size.w * scale),
-          height: screenH,
+          natW: size.w,
+          natH: size.h,
         });
       }
       if (!cancelled) {
-        measuredRef.current = results;
-        setMeasured(results);
+        setNaturals(results);
         if (scrollMemory.poolKey !== key) {
           scrollMemory.poolKey = key;
           scrollMemory.offset = 0;
           offset.current = 0;
+          applyOffset(stripRef.current, 0);
         }
-        applyOffset(stripRef.current, offset.current);
       }
     }
-    void measure();
+    void load();
     return () => {
       cancelled = true;
     };
-    // Re-measure only when the pool identity changes, not on pause/resume.
+    // Reload media metrics when the pool identity changes, not on pause/resume.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, resetToken]);
+
+  const measured = useMemo(
+    () => (stage.h >= 8 ? layoutFromNaturals(naturals, stage.h) : []),
+    [naturals, stage.h],
+  );
+
+  useEffect(() => {
+    const prevTotal = measuredRef.current.reduce((sum, m) => sum + m.width + settings.gap_px, 0);
+    const nextTotal = measured.reduce((sum, m) => sum + m.width + settings.gap_px, 0);
+    measuredRef.current = measured;
+    if (prevTotal > 1 && nextTotal > 1 && Math.abs(nextTotal - prevTotal) > 1) {
+      offset.current = wrapOffset(offset.current * (nextTotal / prevTotal), nextTotal);
+      scrollMemory.offset = offset.current;
+    }
+    applyOffset(stripRef.current, offset.current);
+  }, [measured, settings.gap_px]);
 
   const copies = settings.loop_enabled ? 2 : 1;
   const total = useMemo(
@@ -236,7 +290,7 @@ function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: 
       const length = items.reduce((sum, item) => sum + item.width + settings.gap_px, 0);
       if (length <= 0) return;
       const leadingRight = settings.direction !== "rtl";
-      const docks = itemDocks(items, settings.gap_px, window.innerWidth, leadingRight);
+      const docks = itemDocks(items, settings.gap_px, stageRefSize.current.w || window.innerWidth, leadingRight);
       const forward = leadingRight ? event.payload.forward : !event.payload.forward;
       offset.current = snapDock(
         offset.current,
@@ -257,10 +311,10 @@ function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: 
     let frame = 0;
     let last = performance.now();
     let lastActive: string | null = null;
-    const screenW = window.innerWidth;
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      const screenW = stageRefSize.current.w || window.innerWidth;
       if (engine.running && !engine.paused && total > 0) {
         const dir = settings.direction === "rtl" ? -1 : 1;
         offset.current += dir * settings.speed_px_per_sec * dt;
@@ -308,7 +362,7 @@ function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: 
 
   return (
     <div className="wallpaper" style={{ opacity: settings.opacity }}>
-      <div className="scroll-stage">
+      <div ref={stageRef} className="scroll-stage">
         <div
           ref={stripRef}
           className="scroll-strip"
@@ -319,7 +373,7 @@ function ScrollStage({ engine, resetToken }: { engine: EngineState; resetToken: 
               <div
                 key={`${copy}-${m.item.node_id}`}
                 className="scroll-item"
-                style={{ width: m.width, height: m.height, contentVisibility: "auto" }}
+                style={{ width: m.width, height: "100%", contentVisibility: "auto" }}
               >
                 {m.item.kind === "video" ? (
                   <ScrollVideo

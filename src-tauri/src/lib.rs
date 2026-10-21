@@ -103,6 +103,12 @@ pub fn run() {
                     let _ = window.hide();
                 }
             }
+            match event {
+                WindowEvent::Focused(true) | WindowEvent::Resized(_) | WindowEvent::Moved(_) => {
+                    crate::wallpaper::repin_if_playing(window.app_handle());
+                }
+                _ => {}
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_tree,
@@ -134,6 +140,13 @@ pub fn run() {
             commands::toggle_main_window,
             commands::app_info,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running OpenMount");
+        .build(tauri::generate_context!())
+        .expect("error while building OpenMount")
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = &event {
+                crate::wallpaper::repin_if_playing(app);
+            }
+            let _ = (app, event);
+        });
 }

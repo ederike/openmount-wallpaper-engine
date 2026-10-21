@@ -34,8 +34,8 @@ Closing the main window hides it. The wallpaper window and tray keep running.
 
 ## Platform wallpaper attachment
 
-- **Windows**: parent the wallpaper HWND to the desktop `WorkerW` created behind icons. Fallback: always-on-bottom click-through window.
-- **macOS**: `NSWindow` desktop window level plus `CanJoinAllSpaces`.
+- **Windows**: raise the desktop with `0x052C`, then parent the wallpaper HWND into the shell. On Windows 11 24H2 the icon window (`SHELLDLL_DefView`) is a child of `Progman`; the wallpaper is parented to `Progman` and z-ordered under that icon layer. Older builds still use the sibling `WorkerW` behind icons. Fallback: always-on-bottom click-through window.
+- **macOS**: `CGWindowLevelForKey(kCGDesktopWindowLevel)` so the wallpaper sits above the system picture and below Finder icons. The window is non-focusable and is re-pinned when the app becomes active, a window is restored, or the dock reopens the app.
 - **Linux (dev only)**: always-on-bottom overlay. Not a v1.0 shipping target.
 
 ## Media

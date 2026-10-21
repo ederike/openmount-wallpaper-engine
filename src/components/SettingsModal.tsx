@@ -3,6 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useT } from "../i18n";
+import { eventToAccelerator, formatAccelerator } from "../lib/accelerator";
 import { savePlayback, useAppStore } from "../store";
 import { Locale } from "../types";
 import { PlaybackSettings, ScrollOrder, ShortcutBinding } from "../types";
@@ -23,6 +24,7 @@ export function SettingsModal() {
   const [tab, setTab] = useState<"config" | "keys">("config");
   const [draft, setDraft] = useState<PlaybackSettings | null>(engine?.settings ?? null);
   const [keys, setKeys] = useState<ShortcutBinding[]>(shortcuts);
+  const [recording, setRecording] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState("");
   const [updateBusy, setUpdateBusy] = useState(false);
 
@@ -33,6 +35,46 @@ export function SettingsModal() {
   useEffect(() => {
     void getVersion().then(setAppVersion);
   }, []);
+  useEffect(() => {
+    if (!openFlag || tab !== "keys") setRecording(null);
+  }, [openFlag, tab]);
+  useEffect(() => {
+    if (!recording) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.code === "Escape") {
+        setRecording(null);
+        return;
+      }
+      const accel = eventToAccelerator(e);
+      if (!accel) return;
+      const action = recording;
+      setRecording(null);
+      void (async () => {
+        try {
+          const next = await api.updateShortcut(action, accel);
+          setKeys(next);
+          useAppStore.setState({ shortcuts: next });
+        } catch (err) {
+          setToast(String(err));
+          setKeys(await api.getShortcuts());
+        }
+      })();
+    };
+    const onPointer = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(`[data-shortcut="${recording}"]`)) return;
+      setRecording(null);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("mousedown", onPointer, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("mousedown", onPointer, true);
+    };
+  }, [recording, setToast]);
 
   if (!openFlag || !draft) return null;
 
@@ -380,25 +422,19 @@ export function SettingsModal() {
 
           {tab === "keys" && (
             <div className="settings-scroll">
+              <p className="shortcut-hint">{t("shortcutHint")}</p>
               {keys.map((row) => (
                 <div className="shortcut-row" key={row.action}>
                   <span>{t.action(row.action)}</span>
-                  <input
-                    className="kbd"
-                    value={row.accelerator}
-                    onChange={(e) =>
-                      setKeys(keys.map((k) => (k.action === row.action ? { ...k, accelerator: e.target.value } : k)))
-                    }
-                    onBlur={async (e) => {
-                      try {
-                        const next = await api.updateShortcut(row.action, e.target.value);
-                        setKeys(next);
-                      } catch (err) {
-                        setToast(String(err));
-                        setKeys(await api.getShortcuts());
-                      }
-                    }}
-                  />
+                  <button
+                    type="button"
+                    data-shortcut={row.action}
+                    className={`kbd${recording === row.action ? " recording" : ""}`}
+                    aria-pressed={recording === row.action}
+                    onClick={() => setRecording(recording === row.action ? null : row.action)}
+                  >
+                    {recording === row.action ? t("shortcutPress") : formatAccelerator(row.accelerator)}
+                  </button>
                 </div>
               ))}
               <button
@@ -407,6 +443,8 @@ export function SettingsModal() {
                 onClick={() =>
                   void api.restoreShortcuts().then((next) => {
                     setKeys(next);
+                    useAppStore.setState({ shortcuts: next });
+                    setRecording(null);
                     setToast(t("toastShortcutsRestored"));
                   })
                 }

@@ -18,13 +18,15 @@ The wallpaper renderer shows the current pool item.
 
 Every pool item is scaled so its height equals the primary display height, then laid out left-to-right with a configurable gap (default 2px). The canvas translates at `speed_px_per_sec`.
 
+Layout sizes come from image file headers in Rust (parallel, cached by path + mtime), so a pool of 10,000 1K photos does not load every file through the webview. Only items inside the screen plus `preload_seconds * speed` (capped at four screen widths) are decoded. Nearby lookup is a prefix-sum binary search. Images are decoded off-thread at display size and blitted to a viewport canvas; at most two asset-protocol loads run at once, with retries. This keeps macOS WKWebView from hitching on each new file or dropping requests when preload is high.
+
 Order options:
 
 - by folder, custom order inside each folder
 - by folder, name order inside each folder
 - flatten all files by name, modified time, or random
 
-Only the video with the largest on-screen overlap plays. Other videos release their decoder so adjacent clips do not stutter.
+Only the video with the largest on-screen overlap plays. Up to two nearby videos keep a decoder warm. Other videos release their decoder so adjacent clips do not stutter.
 
 Pause keeps the current offset. Next/previous snaps the leading image so its entering edge aligns with the screen edge, then the canvas continues from there.
 

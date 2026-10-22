@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3 — 2026-10-22
+
+- Scroll mode pre-decodes nearby images off the main thread and paints them on a viewport canvas, so new frames no longer hitch the reel on macOS
+- `preload_seconds` now actually warms the next media; loads are capped at 2 concurrent asset requests with retries so a high preload value no longer floods WKWebView and fails images
+- Scroll layout reads image headers in Rust (cached) instead of decoding the whole 10k+ pool in the webview; visible items are found with a prefix-sum binary search
+- Windows: a single tray icon (app icon + menu). Config and code used to each create one, so minimize showed a real icon and a blank icon that owned the menu
+
 ## 0.2.2 — 2026-10-21
 
 - Windows 11 24H2: embed the wallpaper under desktop icons (`Progman` / `SHELLDLL_DefView`) instead of covering shortcuts like a fullscreen window

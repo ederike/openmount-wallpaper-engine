@@ -138,6 +138,14 @@ pub fn get_engine(state: State<AppState>) -> AppResult<EngineState> {
 }
 
 #[tauri::command]
+pub async fn probe_pool_sizes(state: State<'_, AppState>) -> AppResult<Vec<omwe_core::media::MediaSize>> {
+    let pool = state.engine.lock().pool.clone();
+    tauri::async_runtime::spawn_blocking(move || omwe_core::media::probe_item_sizes(&pool))
+        .await
+        .map_err(|err| omwe_core::AppError::msg(err.to_string()))
+}
+
+#[tauri::command]
 pub fn get_playback_settings(state: State<AppState>) -> AppResult<PlaybackSettings> {
     let db = state.db.lock();
     playback::load_settings(&db)
@@ -322,6 +330,7 @@ pub fn toggle_main_window(app: AppHandle) -> AppResult<()> {
         if window.is_visible().unwrap_or(true) {
             let _ = window.hide();
         } else {
+            let _ = window.unminimize();
             let _ = window.show();
             let _ = window.set_focus();
         }

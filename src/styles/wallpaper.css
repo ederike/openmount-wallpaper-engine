@@ -33,23 +33,26 @@ html, body, #root, .wallpaper {
   inset: 0;
   overflow: hidden;
 }
-.scroll-strip {
-  display: flex;
-  height: 100%;
-  align-items: stretch;
-  min-height: 100%;
-}
-.scroll-item {
-  position: relative;
-  flex: none;
-  height: 100%;
-  overflow: hidden;
-}
-.scroll-item img, .scroll-item video {
+.scroll-canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: fill;
   display: block;
+}
+.scroll-videos {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.scroll-videos video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  object-fit: fill;
+  will-change: transform;
 }
 .empty-wall {
   height: 100%;

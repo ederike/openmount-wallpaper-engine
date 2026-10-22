@@ -16,6 +16,7 @@ thiserror.workspace = true
 walkdir.workspace = true
 chrono.workspace = true
 log.workspace = true
+imagesize = "0.13"
 
 [dev-dependencies]
 tempfile.workspace = true

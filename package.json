@@ -1,7 +1,7 @@
 {
   "name": "openmount-wallpaper-engine",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "GPL-3.0-or-later",
   "description": "OpenMount Wallpaper Engine — mount-mapped wallpaper player for Windows and macOS",
   "type": "module",

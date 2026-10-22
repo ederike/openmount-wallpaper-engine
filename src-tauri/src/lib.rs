@@ -15,6 +15,14 @@ pub struct AppState {
     pub engine: Mutex<EngineState>,
 }
 
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -48,16 +56,20 @@ pub fn run() {
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &play, &next, &quit])?;
 
-            let _tray = TrayIconBuilder::new()
+            // One tray only: tauri.conf trayIcon plus this builder used to spawn a
+            // second, empty notify icon. The blank one owned the menu.
+            let icon = app
+                .default_window_icon()
+                .cloned()
+                .unwrap_or_else(|| tauri::include_image!("icons/32x32.png"));
+            let _tray = TrayIconBuilder::with_id("omwe-tray")
+                .icon(icon)
+                .icon_as_template(false)
+                .tooltip("OpenMount Wallpaper Engine")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
+                    "show" => show_main_window(app),
                     "play" => {
                         if let Some(state) = app.try_state::<AppState>() {
                             let _ = commands::play_pause(app.clone(), state);
@@ -86,8 +98,7 @@ pub fn run() {
                             if window.is_visible().unwrap_or(false) {
                                 let _ = window.hide();
                             } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
+                                show_main_window(app);
                             }
                         }
                     }
@@ -101,6 +112,14 @@ pub fn run() {
                 if let WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
                     let _ = window.hide();
+                }
+                // Minimize would leave a taskbar button plus the tray icon.
+                #[cfg(windows)]
+                if matches!(event, WindowEvent::Resized(_) | WindowEvent::Moved(_))
+                    && window.is_minimized().unwrap_or(false)
+                {
+                    let _ = window.hide();
+                    let _ = window.unminimize();
                 }
             }
             match event {
@@ -123,6 +142,7 @@ pub fn run() {
             commands::delete_nodes,
             commands::refresh_mounts,
             commands::get_engine,
+            commands::probe_pool_sizes,
             commands::get_playback_settings,
             commands::set_playback_settings,
             commands::start_wallpaper,

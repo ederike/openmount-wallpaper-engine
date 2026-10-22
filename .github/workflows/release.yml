@@ -47,10 +47,10 @@ jobs:
 
             GPL-3.0-or-later. Source: this repository.
 
+            - Scroll canvas pre-decodes nearby images so the reel stays smooth on macOS
+            - Image headers are read in Rust so a 10k+ pool does not load every file in the webview
+            - Windows tray is a single icon with the app menu (minimize no longer leaves a blank extra icon)
             - Wallpaper sits behind desktop icons on Windows 11 24H2 and macOS
-            - Scroll canvas fills the screen after the wallpaper window resizes
-            - Shortcut settings record a key combination instead of typed text
-            - Status bar stays pinned as a 28px footer and no longer covers the main window
             - Scroll pause/resume keeps the current position
             - In-app update check
 
